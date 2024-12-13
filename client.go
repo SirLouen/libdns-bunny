@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -165,13 +166,26 @@ func createRecord(ctx context.Context, accessKey string, zone string, record lib
 		return libdns.Record{}, fmt.Errorf("API returned invalid record ID")
 	}
 
-	return libdns.Record{
+	createdRecord := libdns.Record{
 		ID:    fmt.Sprint(result.ID),
 		Type:  fromBunnyType(result.Type),
 		Name:  libdns.RelativeName(result.Name, zone),
 		Value: result.Value,
 		TTL:   time.Duration(result.TTL) * time.Second,
-	}, nil
+	}
+
+	slog.LogAttrs(ctx,
+		slog.LevelInfo,
+		"DNS record created",
+		slog.String("id", createdRecord.ID),
+		slog.String("type", string(createdRecord.Type)),
+		slog.String("name", createdRecord.Name),
+		slog.String("value", createdRecord.Value),
+		slog.Duration("ttl", createdRecord.TTL),
+		slog.String("zone", zone),
+	)
+
+	return createdRecord, nil
 }
 
 func deleteRecord(ctx context.Context, accessKey string, zone string, record libdns.Record) error {
