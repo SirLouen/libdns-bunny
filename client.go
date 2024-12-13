@@ -123,9 +123,13 @@ func getAllRecords(ctx context.Context, accessKey string, zone string) ([]libdns
 }
 
 func createRecord(ctx context.Context, accessKey string, zone string, record libdns.Record) (libdns.Record, error) {
+	if accessKey == "" {
+		return libdns.Record{}, fmt.Errorf("access key is required")
+	}
+
 	zoneID, err := getZoneID(ctx, accessKey, zone)
 	if err != nil {
-		return libdns.Record{}, err
+		return libdns.Record{}, fmt.Errorf("failed to get zone ID for %s: %w", zone, err)
 	}
 
 	reqData := bunnyRecord{
@@ -137,24 +141,28 @@ func createRecord(ctx context.Context, accessKey string, zone string, record lib
 
 	reqBuffer, err := json.Marshal(reqData)
 	if err != nil {
-		return libdns.Record{}, err
+		return libdns.Record{}, fmt.Errorf("failed to marshal record data: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "PUT",
 		fmt.Sprintf("https://api.bunny.net/dnszone/%d/records", zoneID), bytes.NewBuffer(reqBuffer))
 	if err != nil {
-		return libdns.Record{}, err
+		return libdns.Record{}, fmt.Errorf("failed to create HTTP request: %w", err)
 	}
 
 	req.Header.Add("content-type", "application/json")
 	data, err := doRequest(accessKey, req)
 	if err != nil {
-		return libdns.Record{}, err
+		return libdns.Record{}, fmt.Errorf("API request failed: %w", err)
 	}
 
 	result := bunnyRecord{}
 	if err := json.Unmarshal(data, &result); err != nil {
-		return libdns.Record{}, err
+		return libdns.Record{}, fmt.Errorf("failed to unmarshal API response: %w", err)
+	}
+
+	if result.ID == 0 {
+		return libdns.Record{}, fmt.Errorf("API returned invalid record ID")
 	}
 
 	return libdns.Record{
