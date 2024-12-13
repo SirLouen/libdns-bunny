@@ -75,6 +75,10 @@ func getZoneID(ctx context.Context, accessKey string, zone string) (int, error) 
 		return 0, err
 	}
 
+	if len(result.Zones) == 0 {
+		return 0, fmt.Errorf("zone not found: %s", zone)
+	}
+
 	if len(result.Zones) > 1 {
 		return 0, errors.New("zone is ambiguous")
 	}
