@@ -1,4 +1,4 @@
-module github.com/libdns/bunny
+module github.com/sirlouen/libdns-bunny
 
 go 1.20
 
