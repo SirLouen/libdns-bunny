@@ -59,9 +59,9 @@ func (p *Provider) doRequest(request *http.Request) ([]byte, error) {
 	return data, nil
 }
 
-func (p *Provider) getZoneID(ctx context.Context, domain string) (int, string, error) {
+func (p *Provider) getZoneID(ctx context.Context, domain string) (int, error) {
 	if domain == "" {
-		return 0, "", fmt.Errorf("domain is an empty string")
+		return 0, fmt.Errorf("domain is an empty string")
 	}
 
 	p.log(fmt.Sprintf("fetching zone ID for %s", domain))
@@ -72,31 +72,31 @@ func (p *Provider) getZoneID(ctx context.Context, domain string) (int, string, e
 	req, err := http.NewRequestWithContext(ctx, "GET",
 		"https://api.bunny.net/dnszone", nil)
 	if err != nil {
-		return 0, "", err
+		return 0, err
 	}
 
 	data, err := p.doRequest(req)
 	if err != nil {
-		return 0, "", err
+		return 0, err
 	}
 
 	result := getAllZonesResponse{}
 	if err := json.Unmarshal(data, &result); err != nil {
-		return 0, "", err
+		return 0, err
 	}
 
 	// Iterate through domain guesses (most specific to least specific)
 	for _, zoneGuess := range zoneGuesses {
 		for _, zone := range result.Zones {
 			if strings.EqualFold(zone.Domain, zoneGuess) {
-				p.log(fmt.Sprintf("found zone ID %d for %s using name %s", 
+				p.log(fmt.Sprintf("found zone ID %d for %s using name %s",
 					zone.ID, domain, zone.Domain))
-				return zone.ID, zone.Domain, nil
+				return zone.ID, nil
 			}
 		}
 	}
 
-	return 0, "", fmt.Errorf("zone not found for domain: %s", domain)
+	return 0, fmt.Errorf("zone not found for domain: %s", domain)
 }
 
 // getBaseDomainNameGuesses returns a list of possible parent domain names
